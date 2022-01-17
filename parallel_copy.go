@@ -13,8 +13,8 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/hajnalandor/timescaledb-parallel-copy/internal/db"
 	"github.com/jmoiron/sqlx"
-	"github.com/timescaledb/timescaledb-parallel-copy/internal/db"
 )
 
 const (

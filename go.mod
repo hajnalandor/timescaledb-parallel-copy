@@ -1,12 +1,10 @@
-module github.com/timescaledb/timescaledb-parallel-copy
+module github.com/hajnalandor/timescaledb-parallel-copy
 
 go 1.17
 
 require (
 	github.com/jackc/pgconn v1.1.0
 	github.com/jmoiron/sqlx v1.2.0
-	github.com/lib/pq v1.2.0
-	github.com/timescale/timescaledb-parallel-copy v0.3.0
 )
 
 require (
