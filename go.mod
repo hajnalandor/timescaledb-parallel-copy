@@ -1,4 +1,4 @@
-module github.com/hajnalandor/timescaledb-parallel-copy
+module github.com/timescaledb/timescaledb-parallel-copy
 
 go 1.17
 
