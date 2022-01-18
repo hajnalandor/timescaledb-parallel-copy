@@ -30,7 +30,7 @@ func (mcc *minimalConnConfig) DSN() string {
 		if val != "" {
 			_, err := s.WriteString(key + "=" + val + " ")
 			if err != nil {
-				panic(err)
+				fmt.Println(err)
 			}
 		}
 	}

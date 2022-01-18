@@ -5,7 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
+	"io"
 	"os"
 	"runtime"
 	"strings"
@@ -41,6 +41,8 @@ type Opts struct {
 	SplitCharacter string
 	// File to read from
 	FromFile string
+	// FileReader to read from
+	FileReader io.Reader
 	// Comma-separated columns present in CSV
 	Columns string
 	// Skip the first line of the input
@@ -132,6 +134,8 @@ func ParallelInsert(ctx context.Context, opts Opts) error {
 		defer file.Close()
 
 		scanner = bufio.NewScanner(file)
+	} else if opts.FileReader != nil {
+		scanner = bufio.NewScanner(opts.FileReader)
 	} else {
 		return errors.New("missing file name")
 	}
@@ -228,7 +232,7 @@ func scan(opts Opts, scanner *bufio.Scanner, batchChan chan *batch) int64 {
 	}
 
 	if err := scanner.Err(); err != nil {
-		log.Fatalf("Error reading input: %s", err.Error())
+		fmt.Printf("Error reading input: %s", err.Error())
 	}
 
 	// Finished reading input, make sure last batch goes out.
@@ -244,7 +248,8 @@ func scan(opts Opts, scanner *bufio.Scanner, batchChan chan *batch) int64 {
 func processBatches(opts Opts, wg *sync.WaitGroup, c chan *batch) {
 	dbx, err := db.Connect(opts.PostgresConnect, opts.Overrides...)
 	if err != nil {
-		panic(err)
+		fmt.Println(err)
+		return
 	}
 	defer dbx.Close()
 
@@ -268,7 +273,8 @@ func processBatches(opts Opts, wg *sync.WaitGroup, c chan *batch) {
 		start := time.Now()
 		rows, err := processBatch(dbx, batch, copyCmd, useSplitChar)
 		if err != nil {
-			panic(err)
+			fmt.Println(err)
+			return
 		}
 		atomic.AddInt64(&rowCount, rows)
 
