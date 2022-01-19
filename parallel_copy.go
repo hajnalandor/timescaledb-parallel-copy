@@ -246,6 +246,7 @@ func scan(opts Opts, scanner *bufio.Scanner, batchChan chan *batch) int64 {
 // processBatches reads batches from channel c and copies them to the target
 // server while tracking stats on the write.
 func processBatches(opts Opts, wg *sync.WaitGroup, c chan *batch) {
+	defer wg.Done()
 	dbx, err := db.Connect(opts.PostgresConnect, opts.Overrides...)
 	if err != nil {
 		fmt.Println(err)
@@ -283,7 +284,6 @@ func processBatches(opts Opts, wg *sync.WaitGroup, c chan *batch) {
 			fmt.Printf("[BATCH] took %v, batch size %d, row rate %f/sec\n", took, opts.BatchSize, float64(opts.BatchSize)/float64(took.Seconds()))
 		}
 	}
-	wg.Done()
 }
 
 func processBatch(db *sqlx.DB, b *batch, copyCmd, splitChar string) (int64, error) {
