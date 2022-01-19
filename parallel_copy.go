@@ -107,7 +107,6 @@ func normalizeOpts(opts *Opts) {
 }
 
 func ParallelInsert(ctx context.Context, opts Opts) error {
-	ctx, calcelFunc := context.WithCancel(ctx)
 	normalizeOpts(&opts)
 
 	if opts.Truncate { // Remove existing data from the table
@@ -170,7 +169,6 @@ func ParallelInsert(ctx context.Context, opts Opts) error {
 	rowsRead := scan(opts, scanner, batchChan)
 	close(batchChan)
 	wg.Wait()
-	calcelFunc()
 	end := time.Now()
 	took := end.Sub(start)
 	rowRate := float64(rowsRead) / float64(took.Seconds())
