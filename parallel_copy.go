@@ -107,6 +107,7 @@ func normalizeOpts(opts *Opts) {
 }
 
 func ParallelInsert(ctx context.Context, opts Opts) error {
+	ctx, calcelFunc := context.WithCancel(ctx)
 	normalizeOpts(&opts)
 
 	if opts.Truncate { // Remove existing data from the table
@@ -162,13 +163,14 @@ func ParallelInsert(ctx context.Context, opts Opts) error {
 
 	// Reporting thread
 	if opts.ReportingPeriod > (0 * time.Second) {
-		go report(opts)
+		go report(ctx, opts)
 	}
 
 	start := time.Now()
 	rowsRead := scan(opts, scanner, batchChan)
 	close(batchChan)
 	wg.Wait()
+	calcelFunc()
 	end := time.Now()
 	took := end.Sub(start)
 	rowRate := float64(rowsRead) / float64(took.Seconds())
@@ -182,25 +184,32 @@ func ParallelInsert(ctx context.Context, opts Opts) error {
 }
 
 // report periodically prints the write rate in number of rows per second
-func report(opts Opts) {
+func report(ctx context.Context, opts Opts) {
 	start := time.Now()
 	prevTime := start
 	prevRowCount := int64(0)
 
-	for now := range time.NewTicker(opts.ReportingPeriod).C {
-		rCount := atomic.LoadInt64(&rowCount)
+	ticker := time.NewTicker(opts.ReportingPeriod)
+	defer ticker.Stop()
 
-		took := now.Sub(prevTime)
-		rowrate := float64(rCount-prevRowCount) / float64(took.Seconds())
-		overallRowrate := float64(rCount) / float64(now.Sub(start).Seconds())
-		totalTook := now.Sub(start)
+	for {
+		select {
+		case <- ctx.Done():
+			fmt.Println("reporting finished")
+		case now := <-ticker.C:
+			rCount := atomic.LoadInt64(&rowCount)
 
-		fmt.Printf("at %v, row rate %0.2f/sec (period), row rate %0.2f/sec (overall), %E total rows\n", totalTook-(totalTook%time.Second), rowrate, overallRowrate, float64(rCount))
+			took := now.Sub(prevTime)
+			rowrate := float64(rCount-prevRowCount) / float64(took.Seconds())
+			overallRowrate := float64(rCount) / float64(now.Sub(start).Seconds())
+			totalTook := now.Sub(start)
 
-		prevRowCount = rCount
-		prevTime = now
+			fmt.Printf("at %v, row rate %0.2f/sec (period), row rate %0.2f/sec (overall), %E total rows\n", totalTook-(totalTook%time.Second), rowrate, overallRowrate, float64(rCount))
+
+			prevRowCount = rCount
+			prevTime = now
+		}
 	}
-
 }
 
 // scan reads lines from a bufio.Scanner, each which should be in CSV format
