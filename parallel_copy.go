@@ -194,6 +194,7 @@ func report(ctx context.Context, opts Opts) {
 		select {
 		case <- ctx.Done():
 			fmt.Println("reporting finished")
+			return
 		case now := <-ticker.C:
 			rCount := atomic.LoadInt64(&rowCount)
 
